@@ -98,12 +98,21 @@ jobs:
           # 切换回原分支
           git checkout ${{ github.sha }}
       
+      - name: Generate commit summary
+        id: commits
+        run: |
+          # 生成最近更改的提交列表，格式化为 Markdown
+          COMMITS=$(git log --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H)) - %an" -n 5)
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.release_info.outputs.RELEASE_NAME }}
-          name: "自动构建 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
+          name: "中国海洋大学硕博士学位论文 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
           body: |
             # 中国海洋大学硕博士学位论文 LaTeX 模板
             
@@ -123,13 +132,13 @@ jobs:
             
             ## 📥 下载 PDF
             
-            点击下方 Assets 中的 PDF 文件下载，或使用以下链接：
+            **点击下方链接可直接从 PDF 分支下载：**
             
             - [从 PDF 分支下载](https://github.com/${{ github.repository }}/raw/pdf/${{ steps.release_info.outputs.PDF_NAME }})
             
             ## 📝 最近更改
             
-            $(git log --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H)) - %an" -n 5)
+            ${{ steps.commits.outputs.COMMITS }}
             
             ## 📚 使用说明
             
