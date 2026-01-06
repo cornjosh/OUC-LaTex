@@ -60,24 +60,20 @@ jobs:
       contents: write
     
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Compile LaTeX document
-        uses: xu-cheng/latex-action@v3
-        with:
-          root_file: main.tex
-          compiler: xelatex
-          args: -interaction=nonstopmode -file-line-error
-          latexmk_use_xelatex: true
-      
       - name: Get tag name
         id: tag
         run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
       
+      - name: Download PDF artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-pdf
+      
       - name: Rename PDF for release
         run: |
-          mv main.pdf OUC-Thesis-${{ steps.tag.outputs.TAG_NAME }}.pdf
+          # 找到下载的PDF文件（带时间戳的）
+          ORIGINAL_PDF=$(ls thesis_*.pdf | head -1)
+          mv "$ORIGINAL_PDF" OUC-Thesis-${{ steps.tag.outputs.TAG_NAME }}.pdf
           echo "RELEASE_PDF=OUC-Thesis-${{ steps.tag.outputs.TAG_NAME }}.pdf" >> $GITHUB_ENV
       
       - name: Create Release
