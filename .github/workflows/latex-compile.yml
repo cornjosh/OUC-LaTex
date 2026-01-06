@@ -106,13 +106,6 @@ jobs:
           
           $COMMITS
           
-          ## 编译信息
-          
-          - 编译时间: ${{ steps.release_info.outputs.RELEASE_DATETIME }}
-          - 提交哈希: ${GITHUB_SHA:0:7}
-          - 分支: ${GITHUB_REF#refs/heads/}
-          - 触发方式: ${GITHUB_EVENT_NAME}"
-          
           echo "SUMMARY<<EOF" >> $GITHUB_OUTPUT
           echo "$SUMMARY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -124,12 +117,12 @@ jobs:
           tag_name: ${{ steps.release_info.outputs.RELEASE_NAME }}
           name: "自动构建 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
           body: |
-            # 中国海洋大学硕博士学位论文 LaTeX 模板
+            # 中国海洋大学硕博士学位论文 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}
             
             ## 📅 构建信息
             
             - **构建时间**: ${{ steps.release_info.outputs.RELEASE_DATETIME }}
-            - **提交哈希**: `${{ github.sha }}`
+            - **提交哈希**: `${GITHUB_SHA:0:7}`
             - **分支**: `${{ github.ref_name }}`
             - **触发者**: @${{ github.actor }}
             - **触发方式**: ${{ github.event_name }}
@@ -142,9 +135,8 @@ jobs:
             
             ## 📥 下载 PDF
             
-            点击下方 Assets 中的 PDF 文件下载，或使用直接下载链接：
-            
-            - [直接下载链接](https://github.com/${{ github.repository }}/releases/download/${{ steps.release_info.outputs.RELEASE_NAME }}/${{ steps.release_info.outputs.PDF_NAME }})
+            点击下方 Assets 中的 PDF 文件下载：
+
             - [从 PDF 分支下载](https://github.com/${{ github.repository }}/raw/pdf/${{ steps.release_info.outputs.PDF_NAME }})
             
             ${{ steps.ai_summary.outputs.SUMMARY }}
@@ -156,7 +148,7 @@ jobs:
             ---
             
             *此 PDF 由 GitHub Actions 自动编译生成 | [查看工作流运行](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})*
-          files: ${{ steps.release_info.outputs.PDF_NAME }}
+          include_source: false
           draft: false
           prerelease: false
         env:
