@@ -112,7 +112,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.release_info.outputs.RELEASE_NAME }}
-          name: "中国海洋大学硕博士学位论文 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
+          name: "自动构建 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
           body: |
             # 中国海洋大学硕博士学位论文 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}
             
