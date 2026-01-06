@@ -43,6 +43,8 @@ jobs:
       - name: Rename PDF with timestamp
         run: |
           mv main.pdf ${{ steps.release_info.outputs.PDF_NAME }}
+          # 立即备份到 /tmp 避免后续 git 操作时被删除
+          cp ${{ steps.release_info.outputs.PDF_NAME }} /tmp/${{ steps.release_info.outputs.PDF_NAME }}
       
       - name: Setup Git for PDF branch
         run: |
@@ -51,9 +53,6 @@ jobs:
       
       - name: Commit PDF to pdf branch
         run: |
-          # 保存当前 PDF 文件
-          cp ${{ steps.release_info.outputs.PDF_NAME }} /tmp/${{ steps.release_info.outputs.PDF_NAME }}
-          
           # 检查 pdf 分支是否存在
           if git ls-remote --heads origin pdf | grep pdf; then
             # pdf 分支存在，切换到它
@@ -70,8 +69,8 @@ jobs:
             git commit -m "Initialize PDF storage branch"
           fi
           
-          # 复制 PDF 文件到当前目录
-          cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} .
+          # 从 /tmp 复制 PDF 文件到当前目录
+          cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
           
           # 添加并提交 PDF
           git add ${{ steps.release_info.outputs.PDF_NAME }}
