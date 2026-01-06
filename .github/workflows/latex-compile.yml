@@ -1,0 +1,172 @@
+name: LaTeX Compilation and Release
+
+on:
+  # 触发条件：推送到任何分支（除了 pdf 分支）
+  push:
+    branches:
+      - '**'
+      - '!pdf'
+  # 手动触发
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Generate timestamp and release name
+        id: release_info
+        run: |
+          # 使用 UTC+8 时区（北京时间）
+          TIMESTAMP=$(TZ='Asia/Shanghai' date +%Y%m%d_%H%M%S)
+          RELEASE_NAME="build-${TIMESTAMP}"
+          RELEASE_DATETIME=$(TZ='Asia/Shanghai' date +'%Y年%m月%d日 %H:%M:%S')
+          echo "TIMESTAMP=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_OUTPUT
+          echo "RELEASE_DATETIME=${RELEASE_DATETIME}" >> $GITHUB_OUTPUT
+          echo "PDF_NAME=thesis_${TIMESTAMP}.pdf" >> $GITHUB_OUTPUT
+      
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          compiler: latexmk
+          args: -interaction=nonstopmode -file-line-error -xelatex
+          latexmk_use_xelatex: true
+      
+      - name: Rename PDF with timestamp and move to /tmp
+        run: |
+          mv main.pdf /tmp/${{ steps.release_info.outputs.PDF_NAME }}
+      
+      - name: Setup Git for PDF branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Commit PDF to pdf branch
+        run: |
+          # 检查 pdf 分支是否存在
+          if git ls-remote --heads origin pdf | grep pdf; then
+            # pdf 分支存在，切换到它
+            git fetch origin pdf
+            git checkout pdf
+            # 从 /tmp 复制 PDF 文件到当前目录
+            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
+          else
+            # pdf 分支不存在，创建新的孤立分支
+            git checkout --orphan pdf
+            git rm -rf . 2>/dev/null || true
+
+            # 新增：修复当前目录权限（孤立分支清空后，确保目录可写）
+            sudo chown -R runner:runner .
+            chmod -R 755 .
+            
+            # 创建 README 并复制 PDF（在同一个提交中）
+            echo "# PDF 存储分支" > README.md
+            echo "" >> README.md
+            echo "此分支用于存储自动编译的 PDF 文件，可用于在线预览。" >> README.md
+            
+            # 从 /tmp 复制 PDF 文件
+            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
+            
+            # 一次性添加并提交 README 和 PDF
+            git add README.md ${{ steps.release_info.outputs.PDF_NAME }}
+            git commit -m "Initialize PDF storage branch with first build"
+            git push origin pdf
+            
+            # 切换回原分支并退出（不需要再次提交）
+            git checkout ${{ github.sha }}
+            exit 0
+          fi
+          
+          # 添加并提交 PDF（仅当分支已存在时执行）
+          git add ${{ steps.release_info.outputs.PDF_NAME }}
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add PDF build from ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
+            git push origin pdf
+          fi
+          
+          # 切换回原分支
+          git checkout ${{ github.sha }}
+      
+      - name: Generate commit summary
+        id: commits
+        run: |
+          # 生成最近更改的提交列表，格式化为 Markdown
+          COMMITS=$(git log --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H)) - %an" -n 5)
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.release_info.outputs.RELEASE_NAME }}
+          name: "自动构建 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
+          body: |
+            # 中国海洋大学硕博士学位论文 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}
+            
+            ## 📅 构建信息
+            
+            - **构建时间**: ${{ steps.release_info.outputs.RELEASE_DATETIME }} (UTC+8)
+            - **提交哈希**: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            - **分支**: `${{ github.ref_name }}`
+            - **触发者**: @${{ github.actor }}
+            - **触发方式**: ${{ github.event_name }}
+            
+            ## 👀 在线预览
+            
+            **点击下方链接可直接在浏览器中预览 PDF（无需下载）：**
+            
+            🔗 [在线预览 PDF](https://github.com/${{ github.repository }}/blob/pdf/${{ steps.release_info.outputs.PDF_NAME }})
+            
+            ## 📥 下载 PDF
+            
+            **点击下方链接可直接从 PDF 分支下载：**
+            
+            - [从 PDF 分支下载](https://github.com/${{ github.repository }}/raw/pdf/${{ steps.release_info.outputs.PDF_NAME }})
+            
+            ## 📝 最近更改
+            
+            ${{ steps.commits.outputs.COMMITS }}
+            
+            ## 📚 使用说明
+            
+            详细使用说明请查看 [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
+            
+            ---
+            
+            *此 PDF 由 GitHub Actions 自动编译生成 | [查看工作流运行](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Output summary
+        run: |
+          echo "# 🎉 编译和发布成功！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Release 信息" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release 名称**: ${{ steps.release_info.outputs.RELEASE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **构建时间**: ${{ steps.release_info.outputs.RELEASE_DATETIME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release URL**: ${{ steps.create_release.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 👀 在线预览" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [点击预览 PDF](https://github.com/${{ github.repository }}/blob/pdf/${{ steps.release_info.outputs.PDF_NAME }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📥 下载链接" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [从 Release 下载](https://github.com/${{ github.repository }}/releases/download/${{ steps.release_info.outputs.RELEASE_NAME }}/${{ steps.release_info.outputs.PDF_NAME }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [从 PDF 分支下载](https://github.com/${{ github.repository }}/raw/pdf/${{ steps.release_info.outputs.PDF_NAME }})" >> $GITHUB_STEP_SUMMARY

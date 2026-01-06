@@ -48,6 +48,41 @@ Overleaf 是一个线上 LaTeX 编辑器，可以在不安装任何工具的情�
 
 <br>
 
+## GitHub Actions 自动编译
+
+本项目已配置 GitHub Actions 工作流，可以自动编译 LaTeX 文档并生成 PDF。
+
+### 功能特性
+
+1. **自动编译**：每次推送代码时，自动编译 LaTeX 为 PDF
+2. **在线预览**：PDF 存储在 `pdf` 分支，可直接在 GitHub 上预览（无需下载）
+3. **自动发布**：每次推送都会创建 Release，包含详细的构建信息和变更摘要
+
+### 使用方法
+
+#### 方式一：自动触发
+推送代码到仓库，GitHub Actions 会自动编译并创建 Release：
+```bash
+git add .
+git commit -m "更新论文"
+git push
+```
+
+#### 方式二：手动触发
+1. 进入 GitHub 仓库的 **Actions** 标签页
+2. 点击 **LaTeX Compilation and Release** 工作流
+3. 点击 **Run workflow** 手动触发编译
+
+### 查看和下载 PDF
+
+- **在线预览**：进入 Releases 页面 → 点击最新 Release → 点击"在线预览 PDF"链接
+- **从 Releases 下载**：进入 Releases 页面下载对应版本的 PDF
+- **从 PDF 分支查看**：访问 `pdf` 分支查看所有历史版本的 PDF
+
+详细说明请查看 [GitHub Actions 使用文档](.github/workflows/README.md)
+
+<br>
+
 
 
 ## 修改记录
