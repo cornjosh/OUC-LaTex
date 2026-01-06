@@ -6,36 +6,47 @@
 
 ### 1. 自动编译 LaTeX 为 PDF
 
-每次推送代码到仓库时，GitHub Actions 会自动：
-- 使用 XeLaTeX 编译器编译 `main.tex` 文件
-- 生成 PDF 文档
-- 将编译好的 PDF 作为 Artifact 上传，保留 90 天
+每次推送代码到仓库时（除了 `pdf` 分支），GitHub Actions 会自动：
+- 使用 XeLaTeX 编译器（通过 latexmk）编译 `main.tex` 文件
+- 生成带时间戳的 PDF 文档（格式：`thesis_YYYYMMDD_HHMMSS.pdf`）
+- 将 PDF 提交到专门的 `pdf` 分支用于在线预览
+- 自动创建 Release 发布
 
-### 2. 在线预览
+### 2. PDF 分支存储
 
-编译完成后，可以通过以下方式预览 PDF：
+所有编译的 PDF 都存储在 `pdf` 分支中：
+- 每个 PDF 文件以时间戳命名，方便追溯
+- 可以通过 GitHub 直接在线预览
+- 不会污染主分支的提交历史
 
-1. **下载 Artifact 预览**：
-   - 进入 GitHub 仓库的 **Actions** 标签页
-   - 点击对应的工作流运行记录
-   - 在页面底部的 **Artifacts** 区域下载 `compiled-pdf`
-   - 下载后解压即可查看 PDF
+### 3. 自动 Release 发布
 
-2. **在线查看**：
-   - 下载 Artifact 后，可以使用浏览器或 PDF 阅读器打开
-   - 或者直接在 GitHub Release 中查看（如果创建了 Release）
+**每次推送或手动触发都会创建 Release**（不再需要 tag）：
+- Release 名称格式：`build-YYYYMMDD_HHMMSS`
+- 包含详细的构建信息（时间、提交哈希、分支、触发者等）
+- 自动生成最近提交的变更摘要
+- 提供多种下载和预览方式
 
-### 3. 发布到 Releases
+### 4. 在线预览
 
-当推送一个以 `v` 开头的 tag 时（例如 `v1.0.0`），GitHub Actions 会自动：
-- 编译 LaTeX 文档
-- 创建一个新的 GitHub Release
-- 将 PDF 附加到 Release 中
-- 在 Release 描述中提供下载链接和预览说明
+编译完成后，可以通过以下方式**直接在浏览器中预览 PDF**（无需下载）：
+
+1. **从 Release 页面预览**：
+   - 进入 GitHub 仓库的 **Releases** 标签页
+   - 点击最新的 Release
+   - 在 Release 说明中点击 **"在线预览 PDF"** 链接
+
+2. **从 PDF 分支预览**：
+   - 访问 `https://github.com/你的用户名/OUC-LaTex/blob/pdf/thesis_YYYYMMDD_HHMMSS.pdf`
+   - GitHub 会自动渲染 PDF 供在线查看
+
+3. **下载后预览**：
+   - 从 Release Assets 下载 PDF
+   - 从 PDF 分支直接下载
 
 ## 触发方式
 
-工作流可以通过以下三种方式触发：
+工作流可以通过以下两种方式触发：
 
 ### 1. 推送代码（自动触发）
 
@@ -45,7 +56,10 @@ git commit -m "更新论文内容"
 git push
 ```
 
-推送后，GitHub Actions 会自动开始编译。
+推送后，GitHub Actions 会自动：
+1. 编译 LaTeX 文档
+2. 将 PDF 推送到 `pdf` 分支
+3. 创建新的 Release
 
 ### 2. 手动触发
 
@@ -55,40 +69,72 @@ git push
 4. 选择要运行的分支
 5. 点击 **Run workflow** 确认
 
-### 3. 推送 Tag 创建 Release
+## Release 信息说明
 
-```bash
-# 创建并推送 tag
-git tag -a v1.0.0 -m "第一版论文"
-git push origin v1.0.0
-```
+每个自动创建的 Release 包含以下信息：
 
-这将触发编译并创建一个新的 Release。
+### 构建信息
+- **构建时间**：精确到秒的编译时间
+- **提交哈希**：触发构建的完整提交 SHA
+- **分支**：触发构建的分支名称
+- **触发者**：触发构建的 GitHub 用户
+- **触发方式**：push 或 workflow_dispatch
+
+### 变更摘要
+- 最近 5 次提交的简要说明
+- 每条提交包含提交信息和作者
+
+### 预览和下载
+- **在线预览链接**：直接在 GitHub 上查看 PDF
+- **Release 下载**：从 Release Assets 下载
+- **PDF 分支下载**：从 pdf 分支直接下载
 
 ## 工作流程详解
 
-### Build Job（构建任务）
+### Build-and-Release Job（构建并发布任务）
 
 在每次推送或手动触发时执行：
 
-1. **检出代码**：从仓库获取最新代码
-2. **编译 LaTeX**：使用 XeLaTeX 编译 `main.tex`
-3. **重命名 PDF**：添加时间戳到文件名
-4. **上传 Artifact**：将 PDF 上传为可下载的 Artifact
-5. **生成摘要**：在工作流运行页面显示下载链接
-
-### Release Job（发布任务）
-
-仅在推送 tag 时执行（tag 需以 `v` 开头）：
-
-1. **获取 Tag 名称**：提取 tag 名称（如 `v1.0.0`）
-2. **下载 PDF**：从 build job 下载已编译的 PDF artifact
-3. **重命名 PDF**：使用 tag 名称重命名文件（如 `OUC-Thesis-v1.0.0.pdf`）
-4. **创建 Release**：在 GitHub Releases 中创建新版本
-5. **上传 PDF**：将 PDF 作为 Release Asset 上传
-6. **生成摘要**：显示 Release 链接和 PDF 下载链接
+1. **检出代码**：从仓库获取完整历史（用于生成提交摘要）
+2. **生成时间戳和 Release 信息**：创建唯一的构建标识
+3. **编译 LaTeX**：使用 latexmk + XeLaTeX 编译
+4. **重命名 PDF**：添加时间戳到文件名
+5. **配置 Git**：设置 GitHub Actions bot 身份
+6. **提交到 PDF 分支**：
+   - 检查 `pdf` 分支是否存在
+   - 如果不存在，创建新的孤立分支
+   - 将 PDF 文件添加到 `pdf` 分支
+   - 推送更改
+7. **生成变更摘要**：收集最近的提交信息
+8. **创建 Release**：
+   - 使用时间戳创建 Release tag
+   - 生成包含详细信息的 Release 说明
+   - 附加 PDF 文件
+9. **输出摘要**：在工作流运行页面显示预览和下载链接
 
 ## 常见问题
+
+### Q: 为什么每次推送都创建 Release？
+
+A: 这是为了方便查看每次构建的结果。每个 Release 都包含：
+- 对应时间点的 PDF 快照
+- 详细的构建信息
+- 在线预览链接
+- 变更历史
+
+### Q: PDF 分支是什么？
+
+A: `pdf` 分支是一个专门用于存储编译后 PDF 文件的孤立分支：
+- 不包含源代码，只有 PDF 文件
+- 每个 PDF 以时间戳命名
+- 可以直接通过 GitHub 在线预览
+- 不会污染主分支的提交历史
+
+### Q: 如何查看历史版本的 PDF？
+
+A: 有两种方式：
+1. **通过 Releases**：访问 Releases 页面，查看任何一个历史 Release
+2. **通过 PDF 分支**：访问 `pdf` 分支，可以看到所有历史 PDF 文件
 
 ### Q: 编译失败怎么办？
 
@@ -98,32 +144,27 @@ A:
 3. 检查 LaTeX 语法错误或缺少的包
 4. 修复后重新推送代码
 
-### Q: 如何查看编译日志？
+### Q: 如何删除旧的 Release？
 
-A:
-1. 进入 GitHub 仓库的 **Actions** 标签页
-2. 点击对应的工作流运行记录
-3. 点击 **build** 或 **release** 任务
-4. 展开 **Compile LaTeX document** 步骤查看详细日志
+A: 
+1. 进入 Releases 页面
+2. 找到要删除的 Release
+3. 点击右侧的删除按钮
+4. 注意：删除 Release 不会删除 `pdf` 分支中的 PDF 文件
 
-### Q: 为什么 Release 没有创建？
+### Q: PDF 分支会无限增长吗？
 
-A: 确保：
-1. 推送的 tag 以 `v` 开头（如 `v1.0.0`、`v2.1.3`）
-2. 编译成功完成
-3. 仓库有写入权限
-
-### Q: 如何更改 PDF 文件名？
-
-A: 编辑 `.github/workflows/latex-compile.yml` 文件，修改 `Rename PDF` 步骤中的文件名格式。
+A: 是的，每次构建都会在 `pdf` 分支添加一个新文件。如果需要清理：
+1. 可以手动删除 `pdf` 分支中的旧文件
+2. 或者定期清理整个 `pdf` 分支（工作流会在下次运行时重新创建）
 
 ## 技术细节
 
-- **编译器**：XeLaTeX（与 Overleaf 配置一致）
-- **编译参数**：`-interaction=nonstopmode -file-line-error`
-- **编译次数**：使用 `latexmk` 自动多次编译以生成正确的目录和引用
-- **Artifact 保留期**：90 天
-- **所需权限**：`contents: write`（用于创建 Release）
+- **编译器**：latexmk + XeLaTeX
+- **编译参数**：`-interaction=nonstopmode -file-line-error -xelatex`
+- **PDF 命名**：`thesis_YYYYMMDD_HHMMSS.pdf`
+- **Release 命名**：`build-YYYYMMDD_HHMMSS`
+- **所需权限**：`contents: write`（用于创建 Release 和推送到 PDF 分支）
 
 ## 相关链接
 
