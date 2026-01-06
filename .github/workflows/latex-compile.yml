@@ -59,7 +59,7 @@ jobs:
             git fetch origin pdf
             git checkout pdf
             # 从 /tmp 复制 PDF 文件到当前目录
-            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
+            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} "$GITHUB_WORKSPACE/${{ steps.release_info.outputs.PDF_NAME }}"
           else
             # pdf 分支不存在，创建新的孤立分支
             git checkout --orphan pdf
@@ -71,7 +71,7 @@ jobs:
             echo "此分支用于存储自动编译的 PDF 文件，可用于在线预览。" >> README.md
             
             # 从 /tmp 复制 PDF 文件
-            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
+            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} "$GITHUB_WORKSPACE/${{ steps.release_info.outputs.PDF_NAME }}"
             
             # 一次性添加并提交 README 和 PDF
             git add README.md ${{ steps.release_info.outputs.PDF_NAME }}
