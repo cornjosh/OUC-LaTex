@@ -58,21 +58,32 @@ jobs:
             # pdf 分支存在，切换到它
             git fetch origin pdf
             git checkout pdf
+            # 从 /tmp 复制 PDF 文件到当前目录
+            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
           else
             # pdf 分支不存在，创建新的孤立分支
             git checkout --orphan pdf
             git rm -rf . 2>/dev/null || true
+            
+            # 创建 README 并复制 PDF（在同一个提交中）
             echo "# PDF 存储分支" > README.md
             echo "" >> README.md
             echo "此分支用于存储自动编译的 PDF 文件，可用于在线预览。" >> README.md
-            git add README.md
-            git commit -m "Initialize PDF storage branch"
+            
+            # 从 /tmp 复制 PDF 文件
+            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
+            
+            # 一次性添加并提交 README 和 PDF
+            git add README.md ${{ steps.release_info.outputs.PDF_NAME }}
+            git commit -m "Initialize PDF storage branch with first build"
+            git push origin pdf
+            
+            # 切换回原分支并退出（不需要再次提交）
+            git checkout ${{ github.sha }}
+            exit 0
           fi
           
-          # 从 /tmp 复制 PDF 文件到当前目录
-          cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
-          
-          # 添加并提交 PDF
+          # 添加并提交 PDF（仅当分支已存在时执行）
           git add ${{ steps.release_info.outputs.PDF_NAME }}
           if git diff --staged --quiet; then
             echo "No changes to commit"
