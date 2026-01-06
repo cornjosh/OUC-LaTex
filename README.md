@@ -66,7 +66,7 @@ Overleaf 是一个线上 LaTeX 编辑器，可以在不安装任何工具的情�
 3. 填写仓库信息：
    - **Repository name**：填写你的仓库名称
    - **Visibility**：选择 **Private**（私有）或 **Public**（公开）
-   - 建议勾选 **"Include all branches"**（包含所有分支）以保留 GitHub Actions 配置
+   - 建议 **取消** 勾选 **"Include all branches"**（包含所有分支）以创建干净的模板环境
 4. 点击 **"Create repository"** 创建你自己的项目
 5. 克隆你的新仓库到本地，开始编写论文
 6. 提交代码后，GitHub Actions 会自动编译生成 PDF
@@ -90,7 +90,7 @@ git push
 - **从 Releases 下载**：进入 Releases 页面下载对应版本的 PDF
 - **从 PDF 分支查看**：访问 `pdf` 分支查看所有历史版本的 PDF
 
-详细说明请查看 [GitHub Actions 使用文档](.github/workflows/README.md)
+详细说明请查看 [本项目 GitHub Actions 使用文档](.github/workflows/README.md)
 
 <br>
 
