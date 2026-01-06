@@ -40,11 +40,9 @@ jobs:
           args: -interaction=nonstopmode -file-line-error -xelatex
           latexmk_use_xelatex: true
       
-      - name: Rename PDF with timestamp
+      - name: Rename PDF with timestamp and move to /tmp
         run: |
-          mv main.pdf ${{ steps.release_info.outputs.PDF_NAME }}
-          # 立即备份到 /tmp 避免后续 git 操作时被删除
-          cp ${{ steps.release_info.outputs.PDF_NAME }} /tmp/${{ steps.release_info.outputs.PDF_NAME }}
+          mv main.pdf /tmp/${{ steps.release_info.outputs.PDF_NAME }}
       
       - name: Setup Git for PDF branch
         run: |
@@ -59,11 +57,15 @@ jobs:
             git fetch origin pdf
             git checkout pdf
             # 从 /tmp 复制 PDF 文件到当前目录
-            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} "$GITHUB_WORKSPACE/${{ steps.release_info.outputs.PDF_NAME }}"
+            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
           else
             # pdf 分支不存在，创建新的孤立分支
             git checkout --orphan pdf
             git rm -rf . 2>/dev/null || true
+
+            # 新增：修复当前目录权限（孤立分支清空后，确保目录可写）
+            sudo chown -R runner:runner .
+            chmod -R 755 .
             
             # 创建 README 并复制 PDF（在同一个提交中）
             echo "# PDF 存储分支" > README.md
@@ -71,7 +73,7 @@ jobs:
             echo "此分支用于存储自动编译的 PDF 文件，可用于在线预览。" >> README.md
             
             # 从 /tmp 复制 PDF 文件
-            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} "$GITHUB_WORKSPACE/${{ steps.release_info.outputs.PDF_NAME }}"
+            cp /tmp/${{ steps.release_info.outputs.PDF_NAME }} ./${{ steps.release_info.outputs.PDF_NAME }}
             
             # 一次性添加并提交 README 和 PDF
             git add README.md ${{ steps.release_info.outputs.PDF_NAME }}
