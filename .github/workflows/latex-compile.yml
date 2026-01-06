@@ -2,6 +2,8 @@ name: LaTeX Compilation and Release
 
 on:
   # 触发条件：推送到任何分支
+  # 注意：这会在所有分支上编译，包括功能分支
+  # 如需限制，可以只保留 main/master 分支
   push:
     branches:
       - '**'
@@ -72,7 +74,11 @@ jobs:
       - name: Rename PDF for release
         run: |
           # 找到下载的PDF文件（带时间戳的）
-          ORIGINAL_PDF=$(ls thesis_*.pdf | head -1)
+          ORIGINAL_PDF=$(ls thesis_*.pdf 2>/dev/null | head -1)
+          if [ -z "$ORIGINAL_PDF" ]; then
+            echo "Error: No PDF file found matching pattern 'thesis_*.pdf'"
+            exit 1
+          fi
           mv "$ORIGINAL_PDF" OUC-Thesis-${{ steps.tag.outputs.TAG_NAME }}.pdf
           echo "RELEASE_PDF=OUC-Thesis-${{ steps.tag.outputs.TAG_NAME }}.pdf" >> $GITHUB_ENV
       

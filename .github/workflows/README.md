@@ -81,13 +81,12 @@ git push origin v1.0.0
 
 仅在推送 tag 时执行（tag 需以 `v` 开头）：
 
-1. **检出代码**：从仓库获取最新代码
-2. **编译 LaTeX**：使用 XeLaTeX 编译 `main.tex`
-3. **获取 Tag 名称**：提取 tag 名称（如 `v1.0.0`）
-4. **重命名 PDF**：使用 tag 名称重命名文件（如 `OUC-Thesis-v1.0.0.pdf`）
-5. **创建 Release**：在 GitHub Releases 中创建新版本
-6. **上传 PDF**：将 PDF 作为 Release Asset 上传
-7. **生成摘要**：显示 Release 链接和 PDF 下载链接
+1. **获取 Tag 名称**：提取 tag 名称（如 `v1.0.0`）
+2. **下载 PDF**：从 build job 下载已编译的 PDF artifact
+3. **重命名 PDF**：使用 tag 名称重命名文件（如 `OUC-Thesis-v1.0.0.pdf`）
+4. **创建 Release**：在 GitHub Releases 中创建新版本
+5. **上传 PDF**：将 PDF 作为 Release Asset 上传
+6. **生成摘要**：显示 Release 链接和 PDF 下载链接
 
 ## 常见问题
 
