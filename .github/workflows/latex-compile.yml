@@ -26,9 +26,9 @@ jobs:
         uses: xu-cheng/latex-action@v3
         with:
           root_file: main.tex
-          compiler: xelatex
-          args: -interaction=nonstopmode -file-line-error
-          # 编译两次以生成正确的目录和引用
+          compiler: latexmk
+          args: -interaction=nonstopmode -file-line-error -xelatex
+          # 使用 latexmk 和 XeLaTeX 编译，自动多次编译以生成正确的目录和引用
           latexmk_use_xelatex: true
       
       - name: Rename PDF with timestamp
