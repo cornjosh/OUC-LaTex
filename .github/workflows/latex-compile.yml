@@ -97,14 +97,15 @@ jobs:
           # 切换回原分支
           git checkout ${{ github.sha }}
       
-      - name: Generate AI commit summary
-        id: ai_summary
+      - name: Generate commit summary
+        id: summary
         run: |
           # 获取最近的提交信息
           COMMITS=$(git log --pretty=format:"- %s (%an)" -n 5)
           SUMMARY="## 最近更改
           
           $COMMITS
+          "
           
           echo "SUMMARY<<EOF" >> $GITHUB_OUTPUT
           echo "$SUMMARY" >> $GITHUB_OUTPUT
@@ -139,7 +140,7 @@ jobs:
 
             - [从 PDF 分支下载](https://github.com/${{ github.repository }}/raw/pdf/${{ steps.release_info.outputs.PDF_NAME }})
             
-            ${{ steps.ai_summary.outputs.SUMMARY }}
+            ${{ steps.summary.outputs.SUMMARY }}
             
             ## 📝 使用说明
             
