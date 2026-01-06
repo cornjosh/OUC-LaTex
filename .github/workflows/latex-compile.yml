@@ -114,7 +114,7 @@ jobs:
           tag_name: ${{ steps.release_info.outputs.RELEASE_NAME }}
           name: "中国海洋大学硕博士学位论文 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
           body: |
-            # 中国海洋大学硕博士学位论文 LaTeX 模板
+            # 中国海洋大学硕博士学位论文 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}
             
             ## 📅 构建信息
             
