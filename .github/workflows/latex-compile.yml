@@ -1,0 +1,122 @@
+name: LaTeX Compilation and Release
+
+on:
+  # 触发条件：推送到任何分支
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+  # 手动触发
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          compiler: xelatex
+          args: -interaction=nonstopmode -file-line-error
+          # 编译两次以生成正确的目录和引用
+          latexmk_use_xelatex: true
+      
+      - name: Rename PDF with timestamp
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          mv main.pdf thesis_${TIMESTAMP}.pdf
+          echo "PDF_NAME=thesis_${TIMESTAMP}.pdf" >> $GITHUB_ENV
+      
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-pdf
+          path: ${{ env.PDF_NAME }}
+          retention-days: 90
+      
+      - name: Generate artifact URL for preview
+        if: success()
+        run: |
+          echo "PDF 已编译成功！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📄 编译后的 PDF 可以在此工作流运行的 Artifacts 中下载" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 访问链接: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+
+  release:
+    # 仅在推送 tag 时创建 release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          compiler: xelatex
+          args: -interaction=nonstopmode -file-line-error
+          latexmk_use_xelatex: true
+      
+      - name: Get tag name
+        id: tag
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Rename PDF for release
+        run: |
+          mv main.pdf OUC-Thesis-${{ steps.tag.outputs.TAG_NAME }}.pdf
+          echo "RELEASE_PDF=OUC-Thesis-${{ steps.tag.outputs.TAG_NAME }}.pdf" >> $GITHUB_ENV
+      
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.TAG_NAME }}
+          name: Release ${{ steps.tag.outputs.TAG_NAME }}
+          body: |
+            ## 中国海洋大学硕博士学位论文 LaTeX 模板
+            
+            ### 📥 下载编译好的 PDF
+            
+            点击下方 Assets 中的 PDF 文件下载编译好的论文模板。
+            
+            ### 👀 在线预览
+            
+            您可以通过以下方式在线预览 PDF：
+            
+            1. **GitHub 预览**: 点击下方 Assets 中的 PDF 文件，GitHub 会提供在线预览
+            2. **直接下载链接**: https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.TAG_NAME }}/${{ env.RELEASE_PDF }}
+            
+            ### 📝 使用说明
+            
+            详细使用说明请查看 [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
+            
+            ---
+            
+            *此 PDF 由 GitHub Actions 自动编译生成*
+          files: ${{ env.RELEASE_PDF }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Output release info
+        run: |
+          echo "🎉 Release 创建成功！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Release URL: ${{ steps.create_release.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📄 PDF 下载链接: https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.TAG_NAME }}/${{ env.RELEASE_PDF }}" >> $GITHUB_STEP_SUMMARY
