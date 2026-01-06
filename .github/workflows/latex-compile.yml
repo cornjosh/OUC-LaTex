@@ -24,9 +24,10 @@ jobs:
       - name: Generate timestamp and release name
         id: release_info
         run: |
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          # 使用 UTC+8 时区（北京时间）
+          TIMESTAMP=$(TZ='Asia/Shanghai' date +%Y%m%d_%H%M%S)
           RELEASE_NAME="build-${TIMESTAMP}"
-          RELEASE_DATETIME=$(date +'%Y年%m月%d日 %H:%M:%S')
+          RELEASE_DATETIME=$(TZ='Asia/Shanghai' date +'%Y年%m月%d日 %H:%M:%S')
           echo "TIMESTAMP=${TIMESTAMP}" >> $GITHUB_OUTPUT
           echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_OUTPUT
           echo "RELEASE_DATETIME=${RELEASE_DATETIME}" >> $GITHUB_OUTPUT
@@ -97,20 +98,6 @@ jobs:
           # 切换回原分支
           git checkout ${{ github.sha }}
       
-      - name: Generate commit summary
-        id: summary
-        run: |
-          # 获取最近的提交信息
-          COMMITS=$(git log --pretty=format:"- %s (%an)" -n 5)
-          SUMMARY="## 最近更改
-          
-          $COMMITS
-          "
-          
-          echo "SUMMARY<<EOF" >> $GITHUB_OUTPUT
-          echo "$SUMMARY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-      
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -118,12 +105,12 @@ jobs:
           tag_name: ${{ steps.release_info.outputs.RELEASE_NAME }}
           name: "自动构建 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}"
           body: |
-            # 中国海洋大学硕博士学位论文 - ${{ steps.release_info.outputs.RELEASE_DATETIME }}
+            # 中国海洋大学硕博士学位论文 LaTeX 模板
             
             ## 📅 构建信息
             
-            - **构建时间**: ${{ steps.release_info.outputs.RELEASE_DATETIME }}
-            - **提交哈希**: `${GITHUB_SHA:0:7}`
+            - **构建时间**: ${{ steps.release_info.outputs.RELEASE_DATETIME }} (UTC+8)
+            - **提交哈希**: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
             - **分支**: `${{ github.ref_name }}`
             - **触发者**: @${{ github.actor }}
             - **触发方式**: ${{ github.event_name }}
@@ -136,20 +123,21 @@ jobs:
             
             ## 📥 下载 PDF
             
-            点击下方 Assets 中的 PDF 文件下载：
-
+            点击下方 Assets 中的 PDF 文件下载，或使用以下链接：
+            
             - [从 PDF 分支下载](https://github.com/${{ github.repository }}/raw/pdf/${{ steps.release_info.outputs.PDF_NAME }})
             
-            ${{ steps.summary.outputs.SUMMARY }}
+            ## 📝 最近更改
             
-            ## 📝 使用说明
+            $(git log --pretty=format:"- %s ([%h](https://github.com/${{ github.repository }}/commit/%H)) - %an" -n 5)
+            
+            ## 📚 使用说明
             
             详细使用说明请查看 [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
             
             ---
             
             *此 PDF 由 GitHub Actions 自动编译生成 | [查看工作流运行](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})*
-          include_source: false
           draft: false
           prerelease: false
         env:
